@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PHPStan UI</title>
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --bg2:       #13161d;
+    --bg3:       #1a1e28;
+    --bg4:       #21263300;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+    --text:      #e2e4eb;
+    --muted:     #6b7280;
+    --muted2:    #9ca3af;
+    --accent:    #6c8cff;
+    --accent2:   #8aaeff;
+    --danger:    #f87171;
+    --danger-bg: rgba(248,113,113,0.08);
+    --warn:      #fbbf24;
+    --warn-bg:   rgba(251,191,36,0.08);
+    --success:   #34d399;
+    --success-bg:rgba(52,211,153,0.08);
+    --tip:       #a78bfa;
+    --tip-bg:    rgba(167,139,250,0.08);
+    --radius:    8px;
+    --radius-lg: 12px;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    --font-sans: 'Inter', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent2); }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .logo svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+  .logo-badge {
+    background: linear-gradient(135deg, #6c8cff22, #a78bfa22);
+    border: 1px solid rgba(108,140,255,0.3);
+    color: var(--accent2);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .header-meta span { display: flex; align-items: center; gap: 5px; }
+
+  main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: 320px;
+    min-width: 260px;
+    max-width: 400px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .search-wrap {
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  #search {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    padding: 7px 10px 7px 32px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--muted); }
+
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .filter-btn {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted2);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: var(--font-sans);
+  }
+
+  .filter-btn:hover { border-color: var(--border2); background: var(--bg3); }
+  .filter-btn.active-err { border-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
+  .filter-btn.active-warn { border-color: var(--warn); background: var(--warn-bg); color: var(--warn); }
+  .filter-btn.active-all { border-color: var(--accent); background: rgba(108,140,255,0.08); color: var(--accent); }
+
+  .sort-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .sort-row select {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 11px;
+    padding: 4px 8px;
+    outline: none;
+    font-family: var(--font-sans);
+    cursor: pointer;
+  }
+
+  #file-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 6px 0;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.12s;
+    min-width: 0;
+  }
+
+  .file-item:hover { background: var(--bg3); }
+
+  .file-item.active {
+    background: rgba(108,140,255,0.07);
+    border-left-color: var(--accent);
+  }
+
+  .file-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+
+  .file-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-name {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+
+  .file-path {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+
+  .file-badge {
+    flex-shrink: 0;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    padding: 0 6px;
+    background: var(--danger-bg);
+    border: 1px solid rgba(248,113,113,0.25);
+    color: var(--danger);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── CONTENT ── */
+  #content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    min-width: 0;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-top: 4px;
+  }
+
+  .stat-value.red { color: var(--danger); }
+  .stat-value.amber { color: var(--warn); }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.green { color: var(--success); }
+
+  /* ── GLOBAL ERRORS ── */
+  .global-errors {
+    background: var(--danger-bg);
+    border: 1px solid rgba(248,113,113,0.2);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+
+  .global-errors-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--danger);
+    margin-bottom: 8px;
+  }
+
+  .global-error-item {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    color: #fca5a5;
+    padding: 3px 0;
+  }
+
+  /* ── FILE BLOCK ── */
+  .file-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .file-block:hover { border-color: var(--border2); }
+
+  .file-block-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+
+  .file-block.open > .file-block-header {
+    border-bottom-color: var(--border);
+  }
+
+  .file-block-header:hover { background: rgba(255,255,255,0.02); }
+
+  .file-block-chevron {
+    color: var(--muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .file-block.open .file-block-chevron { transform: rotate(90deg); }
+
+  .file-block-path {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-block-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-block-dir {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    font-family: var(--font-mono);
+  }
+
+  .file-block-count {
+    flex-shrink: 0;
+    background: var(--danger-bg);
+    border: 1px solid rgba(248,113,113,0.2);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--danger);
+  }
+
+  .file-block-body {
+    display: none;
+    padding: 8px 0;
+  }
+
+  .file-block.open .file-block-body { display: block; }
+
+  /* ── ERROR ROWS ── */
+  .error-row {
+    display: flex;
+    gap: 0;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: default;
+  }
+
+  .error-row:last-child { border-bottom: none; }
+  .error-row:hover { background: rgba(255,255,255,0.02); }
+
+  .error-line {
+    flex-shrink: 0;
+    width: 56px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    padding-top: 1px;
+    text-align: right;
+    padding-right: 14px;
+    user-select: none;
+  }
+
+  .error-line span {
+    background: var(--bg3);
+    border-radius: 4px;
+    padding: 1px 5px;
+    border: 1px solid var(--border);
+  }
+
+  .error-body { flex: 1; min-width: 0; }
+
+  .error-message {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .error-message mark {
+    background: rgba(251,191,36,0.2);
+    color: var(--warn);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  .error-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 2px 7px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+
+  .tag-ignorable {
+    background: var(--success-bg);
+    color: var(--success);
+    border-color: rgba(52,211,153,0.2);
+  }
+
+  .tag-identifier {
+    background: var(--tip-bg);
+    color: var(--tip);
+    border-color: rgba(167,139,250,0.2);
+    font-family: var(--font-mono);
+    text-transform: none;
+    font-weight: 500;
+    font-size: 10px;
+  }
+
+  .error-tip {
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: var(--tip-bg);
+    border-left: 2px solid var(--tip);
+    border-radius: 0 4px 4px 0;
+    font-size: 11px;
+    color: #c4b5fd;
+    line-height: 1.5;
+  }
+
+  .error-tip-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--tip);
+    margin-bottom: 2px;
+  }
+
+  /* ── EMPTY / LOADING ── */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: var(--muted);
+    gap: 12px;
+    text-align: center;
+  }
+
+  .empty svg { opacity: 0.3; }
+  .empty h2 { font-size: 16px; font-weight: 600; color: var(--muted2); }
+  .empty p { font-size: 13px; max-width: 320px; }
+
+  .success-empty {
+    color: var(--success);
+    font-size: 40px;
+    margin-bottom: 4px;
+  }
+
+  /* ── LOADING SPINNER ── */
+  #loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+  /* ── ZERO ERRORS BANNER ── */
+  .zero-banner {
+    background: var(--success-bg);
+    border: 1px solid rgba(52,211,153,0.2);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .zero-banner h2 { color: var(--success); font-size: 20px; margin-bottom: 6px; }
+  .zero-banner p  { color: var(--muted2); font-size: 13px; }
+
+  /* ── GENERATED ── */
+  .generated-at {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── FILE LIST EMPTY ── */
+  .file-list-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ── HIGHLIGHT ── */
+  .hl { color: var(--accent2); font-weight: 600; }
+
+  /* ── BACK BUTTON ── */
+  .back-btn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted2);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 20px;
+    font-family: var(--font-sans);
+    transition: color 0.12s;
+  }
+
+  .back-btn:hover { color: var(--text); }
+
+  @media (max-width: 800px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    #sidebar { display: none; }
+    #sidebar.mobile-open { display: flex; position: fixed; inset: 56px 0 0 0; z-index: 99; width: 100%; max-width: 100%; }
+    .back-btn { display: flex; }
+    .mobile-menu-btn { display: flex !important; }
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent)">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+      PHPStan UI
+      <span class="logo-badge">local</span>
+    </div>
+    <div class="header-meta">
+      <span id="header-time" style="display:none">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="header-time-val"></span>
+      </span>
+      <button class="mobile-menu-btn" id="mobile-menu" title="Toggle file list">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <div class="search-wrap">
+          <span class="search-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" id="search" placeholder="Search files or errors…" autocomplete="off" />
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn active-all" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="error">Errors</button>
+          <button class="filter-btn" data-filter="ignorable">Ignorable</button>
+        </div>
+        <div class="sort-row">
+          <span>Sort</span>
+          <select id="sort-select">
+            <option value="count-desc">Most errors first</option>
+            <option value="count-asc">Fewest errors first</option>
+            <option value="name-asc">Filename A→Z</option>
+            <option value="name-desc">Filename Z→A</option>
+          </select>
+        </div>
+      </div>
+      <div id="file-list"></div>
+    </div>
+
+    <div id="content">
+      <div id="loading">
+        <div class="spinner"></div>
+        <span>Loading analysis results…</span>
+      </div>
+      <div id="results" style="display:none"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  var state = {
+    data: null,
+    activeFile: null,
+    search: '',
+    filter: 'all',
+    sort: 'count-desc'
+  };
+
+  function el(id) { return document.getElementById(id); }
+
+  function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function highlightSearch(text, q) {
+    if (!q) return escHtml(text);
+    var safe = escHtml(text);
+    var safeQ = escHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp('(' + safeQ + ')', 'gi'), '<mark>$1</mark>');
+  }
+
+  function basename(path) {
+    return path.split(/[\\/]/).pop();
+  }
+
+  function dirname(path) {
+    var parts = path.split(/[\\/]/);
+    parts.pop();
+    return parts.join('/') || '/';
+  }
+
+  function getFilteredFiles() {
+    var data = state.data;
+    if (!data) return [];
+    var q = state.search.toLowerCase();
+
+    var entries = Object.keys(data.files).map(function (filePath) {
+      return { path: filePath, file: data.files[filePath] };
+    });
+
+    // filter by search
+    if (q) {
+      entries = entries.filter(function (e) {
+        if (e.path.toLowerCase().indexOf(q) !== -1) return true;
+        return e.file.messages.some(function (m) {
+          return m.message.toLowerCase().indexOf(q) !== -1;
+        });
+      });
+    }
+
+    // filter by type
+    if (state.filter === 'error') {
+      entries = entries.filter(function (e) {
+        return e.file.messages.some(function (m) { return !m.ignorable; });
+      });
+    } else if (state.filter === 'ignorable') {
+      entries = entries.filter(function (e) {
+        return e.file.messages.some(function (m) { return m.ignorable; });
+      });
+    }
+
+    // sort
+    entries.sort(function (a, b) {
+      switch (state.sort) {
+        case 'count-desc': return b.file.errors - a.file.errors;
+        case 'count-asc':  return a.file.errors - b.file.errors;
+        case 'name-asc':   return basename(a.path).localeCompare(basename(b.path));
+        case 'name-desc':  return basename(b.path).localeCompare(basename(a.path));
+        default:           return 0;
+      }
+    });
+
+    return entries;
+  }
+
+  function renderSidebar() {
+    var list = el('file-list');
+    var entries = getFilteredFiles();
+
+    if (!entries.length) {
+      list.innerHTML = '<div class="file-list-empty">No files match your search.</div>';
+      return;
+    }
+
+    list.innerHTML = entries.map(function (e) {
+      var active = state.activeFile === e.path ? 'active' : '';
+      return '<div class="file-item ' + active + '" data-path="' + escHtml(e.path) + '">' +
+        '<div class="file-icon">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+        '</div>' +
+        '<div class="file-info">' +
+          '<div class="file-name">' + escHtml(basename(e.path)) + '</div>' +
+          '<div class="file-path">' + escHtml(dirname(e.path)) + '</div>' +
+        '</div>' +
+        '<div class="file-badge">' + e.file.errors + '</div>' +
+      '</div>';
+    }).join('');
+
+    list.querySelectorAll('.file-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var path = item.getAttribute('data-path');
+        state.activeFile = path;
+        renderSidebar();
+        renderContent();
+        if (window.innerWidth <= 800) {
+          el('sidebar').classList.remove('mobile-open');
+        }
+      });
+    });
+  }
+
+  function renderErrorRow(msg, q) {
+    var line = msg.line !== null && msg.line !== undefined
+      ? '<span>' + msg.line + '</span>'
+      : '<span style="opacity:0.4">—</span>';
+
+    var meta = '';
+    if (msg.ignorable) {
+      meta += '<span class="tag tag-ignorable">ignorable</span>';
+    }
+    if (msg.identifier) {
+      meta += '<span class="tag tag-identifier">' + escHtml(msg.identifier) + '</span>';
+    }
+
+    var tip = '';
+    if (msg.tip) {
+      tip = '<div class="error-tip"><div class="error-tip-label">Tip</div>' + escHtml(msg.tip) + '</div>';
+    }
+
+    return '<div class="error-row">' +
+      '<div class="error-line">' + line + '</div>' +
+      '<div class="error-body">' +
+        '<div class="error-message">' + highlightSearch(msg.message, q) + '</div>' +
+        (meta ? '<div class="error-meta">' + meta + '</div>' : '') +
+        tip +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderFileBlock(entry, q) {
+    var name = basename(entry.path);
+    var dir  = dirname(entry.path);
+
+    var msgs = entry.file.messages;
+    if (q) {
+      var ql = q.toLowerCase();
+      msgs = msgs.filter(function (m) {
+        return m.message.toLowerCase().indexOf(ql) !== -1 ||
+               entry.path.toLowerCase().indexOf(ql) !== -1;
+      });
+    }
+
+    // If filter is set, narrow messages too
+    if (state.filter === 'ignorable') {
+      msgs = msgs.filter(function (m) { return m.ignorable; });
+    } else if (state.filter === 'error') {
+      msgs = msgs.filter(function (m) { return !m.ignorable; });
+    }
+
+    if (!msgs.length) return '';
+
+    var isActive = state.activeFile === entry.path;
+    var open = isActive || !!q ? ' open' : '';
+
+    return '<div class="file-block' + open + '" data-path="' + escHtml(entry.path) + '">' +
+      '<div class="file-block-header">' +
+        '<svg class="file-block-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+        '<div class="file-block-path">' +
+          '<div class="file-block-name">' + highlightSearch(name, q) + '</div>' +
+          '<div class="file-block-dir">' + escHtml(dir) + '</div>' +
+        '</div>' +
+        '<div class="file-block-count">' + msgs.length + ' error' + (msgs.length !== 1 ? 's' : '') + '</div>' +
+      '</div>' +
+      '<div class="file-block-body">' +
+        msgs.map(function (m) { return renderErrorRow(m, q); }).join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderContent() {
+    var d = state.data;
+    var out = el('results');
+    var q = state.search;
+
+    var entries = getFilteredFiles();
+
+    var html = '';
+
+    // generated at
+    if (d.generated) {
+      html += '<div class="generated-at">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+        'Analysis run at ' + escHtml(d.generated) +
+      '</div>';
+    }
+
+    // stats (only on overview, not filtered)
+    if (!state.activeFile && !q) {
+      html += '<div class="stats-grid">' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">Total Errors</div>' +
+          '<div class="stat-value red">' + (d.totals.errors || 0) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">Files Affected</div>' +
+          '<div class="stat-value blue">' + (d.totals.files || 0) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">File Errors</div>' +
+          '<div class="stat-value amber">' + (d.totals.file_errors || 0) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">Global Errors</div>' +
+          '<div class="stat-value ' + (d.errors.length ? 'red' : 'green') + '">' + d.errors.length + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // zero errors
+    if (!d.totals.errors && !d.errors.length) {
+      html += '<div class="zero-banner">' +
+        '<div class="success-empty">✓</div>' +
+        '<h2>No errors found</h2>' +
+        '<p>Your code passed PHPStan analysis. Keep it up!</p>' +
+      '</div>';
+    }
+
+    // global (non-file) errors
+    if (d.errors && d.errors.length && !state.activeFile) {
+      html += '<div class="global-errors">' +
+        '<div class="global-errors-title">Global / Non-file Errors</div>' +
+        d.errors.map(function (e) {
+          return '<div class="global-error-item">' +
+            '<span style="color:var(--danger);margin-top:1px">✕</span>' +
+            '<span>' + highlightSearch(e, q) + '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }
+
+    // back button when focused on a file
+    if (state.activeFile) {
+      html += '<button class="back-btn" id="back-btn">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
+        'All files' +
+      '</button>';
+    }
+
+    // file blocks
+    if (state.activeFile) {
+      var e = { path: state.activeFile, file: d.files[state.activeFile] };
+      html += renderFileBlock(e, q);
+    } else {
+      if (!entries.length && d.totals.errors > 0) {
+        html += '<div class="empty">' +
+          '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+          '<h2>No results</h2>' +
+          '<p>Try a different search term or filter.</p>' +
+        '</div>';
+      } else {
+        html += entries.map(function (e) { return renderFileBlock(e, q); }).join('');
+      }
+    }
+
+    out.innerHTML = html;
+
+    // back button
+    var backBtn = el('back-btn');
+    if (backBtn) {
+      backBtn.addEventListener('click', function () {
+        state.activeFile = null;
+        renderSidebar();
+        renderContent();
+      });
+    }
+
+    // toggle file blocks
+    out.querySelectorAll('.file-block-header').forEach(function (header) {
+      header.addEventListener('click', function () {
+        var block = header.parentElement;
+        block.classList.toggle('open');
+      });
+    });
+
+    // scroll to top
+    out.scrollTop = 0;
+  }
+
+  function render() {
+    renderSidebar();
+    renderContent();
+  }
+
+  function init(data) {
+    state.data = data;
+
+    el('loading').style.display = 'none';
+    el('results').style.display = 'block';
+
+    if (data.generated) {
+      el('header-time').style.display = 'flex';
+      el('header-time-val').textContent = data.generated;
+    }
+
+    // search
+    el('search').addEventListener('input', function (ev) {
+      state.search = ev.target.value;
+      render();
+    });
+
+    // filter buttons
+    document.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.filter = btn.getAttribute('data-filter');
+        document.querySelectorAll('.filter-btn').forEach(function (b) {
+          b.className = 'filter-btn';
+        });
+        if (state.filter === 'all')       btn.classList.add('active-all');
+        else if (state.filter === 'error') btn.classList.add('active-err');
+        else                              btn.classList.add('active-warn');
+        render();
+      });
+    });
+
+    // sort
+    el('sort-select').addEventListener('change', function (ev) {
+      state.sort = ev.target.value;
+      render();
+    });
+
+    // mobile menu
+    el('mobile-menu').addEventListener('click', function () {
+      el('sidebar').classList.toggle('mobile-open');
+    });
+
+    render();
+  }
+
+  // fetch result
+  fetch('/api/result')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) {
+        el('loading').innerHTML = '<div class="empty"><h2>Error</h2><p>' + escHtml(data.error) + '</p></div>';
+        return;
+      }
+      init(data);
+    })
+    .catch(function (err) {
+      el('loading').innerHTML = '<div class="empty"><h2>Failed to load</h2><p>' + escHtml(String(err)) + '</p></div>';
+    });
+})();
+</script>
+</body>
+</html>

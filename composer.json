@@ -1,0 +1,24 @@
+{
+  "name": "felconca/phpstan-ui",
+  "description": "A local UI for PHPStan analysis results",
+  "type": "phpstan-extension",
+  "require": {
+    "php": ">=5.6",
+    "phpstan/phpstan": "^1.0"
+  },
+  "require-dev": {
+    "felconca/phpstan-ui": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "PhpstanUi\\": "src/"
+    }
+  },
+  "extra": {
+    "phpstan": {
+      "includes": [
+        "extension.neon"
+      ]
+    }
+  }
+}
