@@ -2,4 +2,5 @@ services:
     -
         class: PhpstanUi\UiErrorFormatter
         tags:
-            - phpstan.errorFormatter
+            - phpstan.errorFormatter:
+                name: ui
